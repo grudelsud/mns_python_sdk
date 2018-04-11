@@ -8,13 +8,13 @@
 #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import time
-from mns_client import MNSClient
-from mns_request import *
-from mns_exception import *
-from subscription import *
+from .mns_client import MNSClient
+from .mns_request import *
+from .mns_exception import *
+from .subscription import *
 try:
     import json
-except ImportError,e:
+except ImportError as e:
     import simplejson as json
 
 class Topic:
@@ -175,9 +175,9 @@ class Topic:
 
     def debuginfo(self, resp):
         if self.debug:
-            print "===================DEBUG INFO==================="
-            print "RequestId: %s" % resp.header["x-mns-request-id"]
-            print "================================================"
+            print("===================DEBUG INFO===================")
+            print("RequestId: %s" % resp.header["x-mns-request-id"])
+            print("================================================")
 
     def __resp2meta__(self, topic_meta, resp):
         topic_meta.message_count = resp.message_count
@@ -231,7 +231,7 @@ class TopicMeta:
                      "LastModifyTime": time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(self.last_modify_time)),
                      "TopicName": self.topic_name,
                      "LoggingEnabled": self.logging_enabled}
-        return "\n".join(["%s: %s" % (k.ljust(30),v) for k,v in meta_info.items()])
+        return "\n".join(["%s: %s" % (k.ljust(30),v) for k,v in list(meta_info.items())])
 
 class TopicMessage:
     def __init__(self, message_body = "", message_tag = "", direct_mail = None, direct_sms = None):

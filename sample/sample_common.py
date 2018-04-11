@@ -11,7 +11,7 @@
 import sys
 import os
 import time
-import ConfigParser
+import configparser
 
 class MNSSampleCommon:
 
@@ -21,7 +21,7 @@ class MNSSampleCommon:
         required_ops = [("Base", "AccessKeyId"), ("Base", "AccessKeySecret"), ("Base", "Endpoint")]
         optional_ops = [("Optional", "SecurityToken")]
 
-        parser = ConfigParser.ConfigParser()
+        parser = configparser.ConfigParser()
         parser.read(cfg_fn)
         for sec,op in required_ops:
             if not parser.has_option(sec, op):

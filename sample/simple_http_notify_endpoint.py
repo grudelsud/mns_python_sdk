@@ -14,16 +14,16 @@ import shutil
 import socket
 import base64
 import logging
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import M2Crypto
 import logging.handlers
 import xml.dom.minidom
-import BaseHTTPServer
-import SocketServer
+import http.server
+import socketserver
 
 __version__ = "1.0.3"
 
-class SimpleHttpNotifyEndpoint(BaseHTTPServer.BaseHTTPRequestHandler):
+class SimpleHttpNotifyEndpoint(http.server.BaseHTTPRequestHandler):
     server_version = "SimpleHttpNotifyEndpoint/" + __version__
     access_log_file = "access_log"
     msg_type = "XML"
@@ -50,10 +50,10 @@ class SimpleHttpNotifyEndpoint(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def authenticate(self):
         #get string to signature
-        service_str = "\n".join(sorted(["%s:%s" % (k,v) for k,v in self.headers.items() if k.startswith("x-mns-")]))
+        service_str = "\n".join(sorted(["%s:%s" % (k,v) for k,v in list(self.headers.items()) if k.startswith("x-mns-")]))
         sign_header_list = []
         for key in ["content-md5", "content-type", "date"]:
-            if key in self.headers.keys():
+            if key in list(self.headers.keys()):
                 sign_header_list.append(self.headers.getheader(key))
             else:
                 sign_header_list.append("")
@@ -62,7 +62,7 @@ class SimpleHttpNotifyEndpoint(BaseHTTPServer.BaseHTTPRequestHandler):
         #verify
         authorization = self.headers.getheader('Authorization')
         signature = base64.b64decode(authorization)
-        cert_str = urllib2.urlopen(base64.b64decode(self.headers.getheader('x-mns-signing-cert-url'))).read()
+        cert_str = urllib.request.urlopen(base64.b64decode(self.headers.getheader('x-mns-signing-cert-url'))).read()
         pubkey = M2Crypto.X509.load_cert_string(cert_str).get_pubkey()
         pubkey.reset_context(md='sha1')
         pubkey.verify_init()
@@ -82,7 +82,7 @@ class SimpleHttpNotifyEndpoint(BaseHTTPServer.BaseHTTPRequestHandler):
             return False
         try:
             dom = xml.dom.minidom.parseString(data)
-        except Exception, e:
+        except Exception as e:
             logger.error("Parse string fail, exception:%s" % e)
             return False
 
@@ -98,7 +98,7 @@ class SimpleHttpNotifyEndpoint(BaseHTTPServer.BaseHTTPRequestHandler):
 
         key_list = ["TopicOwner", "TopicName", "Subscriber", "SubscriptionName", "MessageId", "MessageMD5", "Message", "PublishTime"]
         for key in key_list:
-            if key not in data_dic.keys():
+            if key not in list(data_dic.keys()):
                 logger.error("Check item fail. Need \"%s\"." % key)
                 return False
 
@@ -108,7 +108,7 @@ class SimpleHttpNotifyEndpoint(BaseHTTPServer.BaseHTTPRequestHandler):
         msg.subscription_name = data_dic["SubscriptionName"]
         msg.message_id = data_dic["MessageId"]
         msg.message_md5 = data_dic["MessageMD5"]
-        msg.message_tag = data_dic["MessageTag"] if data_dic.has_key("MessageTag") else ""
+        msg.message_tag = data_dic["MessageTag"] if "MessageTag" in data_dic else ""
         msg.message = data_dic["Message"]
         msg.publish_time = data_dic["PublishTime"]
         return True
@@ -146,15 +146,15 @@ class SimpleHttpNotifyEndpoint(BaseHTTPServer.BaseHTTPRequestHandler):
         item_list = [self.command, res_code, self.path, self.request_version]
         header_key_list = ["Content-Length", "Host", "User-Agent", "x-mns-request-id", "x-mns-version"]
         for key in header_key_list:
-            if self.headers.has_key(key):
+            if key in self.headers:
                 item_list.append(self.headers.getheader(key))
             else:
                 item_list.append("-")
         acc_log = "[%s]" % self.log_date_time_string() + " ".join(["\"%s\"" % item for item in item_list]) + "\n"
-        print acc_log,
+        print(acc_log, end=' ')
         open(self.access_log_file, 'a').write(acc_log)
 
-class ThreadedHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     '''Handle request in a separated thread.'''
 
 class NotifyMessage:
@@ -179,7 +179,7 @@ class NotifyMessage:
                     "MessageTag"     : self.message_tag,
                     "Message"       : self.message,
                     "PublishTime"   : self.publish_time}
-        return "\n".join(["%s: %s"%(k.ljust(30),v) for k,v in msg_info.items()])
+        return "\n".join(["%s: %s"%(k.ljust(30),v) for k,v in list(msg_info.items())])
 
 def main(port, endpoint_class = SimpleHttpNotifyEndpoint, msg_type="XML", prefix="http://"):
     #init logger
@@ -197,13 +197,13 @@ def main(port, endpoint_class = SimpleHttpNotifyEndpoint, msg_type="XML", prefix
     #start endpoint
     ip_addr = socket.gethostbyname(socket.gethostname())
     addr_info = "Start Endpoint! Address: %s%s:%s" % (prefix, ip_addr, port)
-    print addr_info
+    print(addr_info)
     try:
         logger.info(addr_info)
         server = ThreadedHTTPServer(('', port), endpoint_class)
         server.serve_forever()
     except KeyboardInterrupt:
-        print "Shutting down the simple notify endpoint!"
+        print("Shutting down the simple notify endpoint!")
         server.socket.close()
 
 if __name__ == "__main__":
