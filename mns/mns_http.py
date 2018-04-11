@@ -14,8 +14,8 @@ from http.client import HTTPConnection, BadStatusLine, HTTPSConnection
 from .mns_exception import *
 
 class MNSHTTPConnection(HTTPConnection):
-    def __init__(self, host, port=None, strict=None, connection_timeout=60):
-        HTTPConnection.__init__(self, host, port, strict)
+    def __init__(self, host, port=None, connection_timeout=60):
+        HTTPConnection.__init__(self, host, port)
         self.request_length = 0
         self.connection_timeout = connection_timeout
 
@@ -50,8 +50,8 @@ class MNSHTTPConnection(HTTPConnection):
             raise socket.error(msg)
 
 class MNSHTTPSConnection(HTTPSConnection):
-    def __init__(self, host, port=None, strict=None):
-        HTTPSConnection.__init__(self, host, port, strict=strict)
+    def __init__(self, host, port=None):
+        HTTPSConnection.__init__(self, host, port)
         self.request_length = 0
 
     def send(self, str):
